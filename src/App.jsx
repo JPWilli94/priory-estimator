@@ -51,8 +51,8 @@ const scenarioLabels = {
   upstairs_ply_feather: "Timber Subfloor Preparation (Upstairs)",
   mixed_wood:           "Mixed Timber Subfloor Preparation",
   grind_dpm_screed:     "Concrete Subfloor Preparation (New Build)",
-  dpm_sandwich:         "Concrete Subfloor Preparation (Pre 1965)",
-  screed:               "Concrete Subfloor Preparation (Post 1965)",
+  dpm_sandwich:         "Concrete Subfloor Preparation (Pre 1970)",
+  screed:               "Concrete Subfloor Preparation (Post 1970)",
   mixed_concrete:       "Mixed Subfloor Preparation",
   mixed_concrete_age:   "Mixed Concrete Subfloor Preparation",
 };
@@ -64,7 +64,7 @@ const scenarioDescriptions = {
   grind_dpm_screed: `Materials supplied include:\n\n• Abrasive consumables for the mechanical scarification of the existing subfloor to remove surface contaminants and provide a suitable key.\n• Rapid drying waterproof surface membrane for the control of residual moisture.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   dpm_sandwich: `Materials supplied include:\n\n• Base smoothing compound to regulate the subfloor and provide a suitable surface prior to application of the damp proof membrane.\n• Epoxy resin damp proof membrane for the control of residual moisture.\n• Grip primer suitable for application over cured epoxy DPM to promote adhesion of levelling compounds.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   screed: `Materials supplied include:\n\n• Primer suitable for use prior to the application of levelling compounds.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
-  mixed_concrete_age: `This estimate is based on an assumed split between subfloor types: 50% pre-1965 preparation, 25% new build preparation, and 25% post-1965 preparation.\n\nMaterials supplied include:\n\n• Base smoothing compound and epoxy resin damp proof membrane as required.\n• Grip primer suitable for application over cured epoxy DPM.\n• Abrasive consumables for mechanical scarification where required.\n• Rapid drying waterproof surface membrane where required.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
+  mixed_concrete_age: `This estimate is based on an assumed split between subfloor types: 50% pre-1970 preparation, 25% new build preparation, and 25% post-1970 preparation.\n\nMaterials supplied include:\n\n• Base smoothing compound and epoxy resin damp proof membrane as required.\n• Grip primer suitable for application over cured epoxy DPM.\n• Abrasive consumables for mechanical scarification where required.\n• Rapid drying waterproof surface membrane where required.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   mixed_concrete: `This estimate is based on an assumed 50/50 split between floor types.\n\nMaterials supplied include:\n\n• Plywood or appropriate subfloor preparation materials as required.\n• Damp proof membrane and/or smoothing compounds as required for each subfloor type.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
 };
 
@@ -76,8 +76,8 @@ function deriveScenario({ subfloor_type, floor_level, is_new_build, property_age
   }
   if (subfloor_type === "concrete") {
     if (is_new_build)                      return { scenario: "grind_dpm_screed",  confidence: "high" };
-    if (property_age === "pre_1965")       return { scenario: "dpm_sandwich",      confidence: "high" };
-    if (property_age === "post_1965")      return { scenario: "screed",            confidence: "high" };
+    if (property_age === "pre_1970")       return { scenario: "dpm_sandwich",      confidence: "high" };
+    if (property_age === "post_1970")      return { scenario: "screed",            confidence: "high" };
     if (property_age === "mixed_age")      return { scenario: "mixed_concrete_age", confidence: "medium" };
   }
   if (subfloor_type === "mixed")    return { scenario: "mixed_concrete",      confidence: "low" };
@@ -418,8 +418,8 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
               <Label>Property age</Label>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
-                  { value: "pre_1965",  label: "Before 1965" },
-                  { value: "post_1965", label: "1965 or later" },
+                  { value: "pre_1970",  label: "Before 1970" },
+                  { value: "post_1970", label: "1970 or later" },
                   { value: "mixed_age", label: "Mixed", sub: "e.g. older property with newer extension" },
                 ].map(o => (
                   <OptionCard key={o.value} label={o.label} sub={o.sub} selected={data.property_age === o.value}
