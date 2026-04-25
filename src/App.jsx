@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import emailjs from "@emailjs/browser";
 
 const EMAILJS_SERVICE_ID  = "service_2mp4ist";
 const EMAILJS_TEMPLATE_ID = "template_nz76zgm";
@@ -531,19 +532,9 @@ function StepEstimate({ data, onRestart }) {
   useEffect(() => {
     const sendEmail = async () => {
       try {
-        // Dynamically load EmailJS
-        if (!window.emailjs) {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-          });
-        }
-        window.emailjs.init(EMAILJS_PUBLIC_KEY);
+        emailjs.init(EMAILJS_PUBLIC_KEY);
         const subfloorLabel = scenarioLabels[result.scenario] ?? result.scenario;
-        await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
           from_name:     data.name,
           from_email:    data.email,
           phone:         data.phone,
