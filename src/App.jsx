@@ -535,6 +535,8 @@ function StepEstimate({ data, onRestart }) {
         if (!ejs) { console.error("EmailJS not loaded"); return; }
         const subfloorLabel = scenarioLabels[result.scenario] ?? result.scenario;
         await ejs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          name:          data.name,
+          message:       `New LVT estimate lead from ${data.name}`,
           from_name:     data.name,
           from_email:    data.email,
           phone:         data.phone,
