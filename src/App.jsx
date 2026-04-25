@@ -60,12 +60,12 @@ const scenarioLabels = {
 const scenarioDescriptions = {
   gf_ply_screed: `Materials supplied include:\n\n• Plywood to provide a suitable base over the existing timber subfloor.\n• Primer suitable for use prior to the application of levelling compounds.\n• Flexible smoothing compound to provide a stable, reinforced and level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   upstairs_ply_feather: `Materials supplied include:\n\n• Plywood to provide a suitable base over the existing timber subfloor.\n• Feather finishing compound for minor surface preparation and smoothing.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
-  mixed_wood: `This estimate is based on an assumed 50/50 split between floor types.\n\nMaterials supplied include:\n\n• Plywood to provide a suitable base over the existing timber subfloor.\n• Primer and/or feather finishing compound as required for each floor level.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
+  mixed_wood: `Materials supplied include:\n\n• Plywood to provide a suitable base over the existing timber subfloor.\n• Primer and/or feather finishing compound as required for each floor level.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   grind_dpm_screed: `Materials supplied include:\n\n• Abrasive consumables for the mechanical scarification of the existing subfloor to remove surface contaminants and provide a suitable key.\n• Rapid drying waterproof surface membrane for the control of residual moisture.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   dpm_sandwich: `Materials supplied include:\n\n• Base smoothing compound to regulate the subfloor and provide a suitable surface prior to application of the damp proof membrane.\n• Epoxy resin damp proof membrane for the control of residual moisture.\n• Grip primer suitable for application over cured epoxy DPM to promote adhesion of levelling compounds.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
   screed: `Materials supplied include:\n\n• Primer suitable for use prior to the application of levelling compounds.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
-  mixed_concrete_age: `This estimate is based on an assumed split between subfloor types: 50% pre-1970 preparation, 25% new build preparation, and 25% post-1970 preparation.\n\nMaterials supplied include:\n\n• Base smoothing compound and epoxy resin damp proof membrane as required.\n• Grip primer suitable for application over cured epoxy DPM.\n• Abrasive consumables for mechanical scarification where required.\n• Rapid drying waterproof surface membrane where required.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
-  mixed_concrete: `This estimate is based on an assumed 50/50 split between floor types.\n\nMaterials supplied include:\n\n• Plywood or appropriate subfloor preparation materials as required.\n• Damp proof membrane and/or smoothing compounds as required for each subfloor type.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
+  mixed_concrete_age: `Materials supplied include:\n\n• Base smoothing compound and epoxy resin damp proof membrane as required.\n• Grip primer suitable for application over cured epoxy DPM.\n• Abrasive consumables for mechanical scarification where required.\n• Rapid drying waterproof surface membrane where required.\n• Smoothing compound to provide a smooth, level surface suitable for LVT installation.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
+  mixed_concrete: `Materials supplied include:\n\n• Plywood or appropriate subfloor preparation materials as required.\n• Damp proof membrane and/or smoothing compounds as required for each subfloor type.\n• Recommended LVT adhesive suitable for the installation of LVT flooring.\n\nAll materials supplied in accordance with manufacturer recommendations.`,
 };
 
 function deriveScenario({ subfloor_type, floor_level, is_new_build, property_age }) {
@@ -84,7 +84,7 @@ function deriveScenario({ subfloor_type, floor_level, is_new_build, property_age
   return { scenario: "dpm_sandwich", confidence: "low" };
 }
 
-function calculateEstimate({ room_size_m2, product_brand, product_range, subfloor_type, floor_level, is_new_build, property_age }) {
+function calculateEstimate({ room_size_m2, product_brand, product_range, subfloor_type, floor_level, is_new_build, property_age, mix_floor, mix_subfloor, mix_concrete_age }) {
   const { scenario, confidence } = deriveScenario({ subfloor_type, floor_level, is_new_build, property_age });
   const rangeData = pricingData[product_brand]?.[product_range];
   const area = parseFloat(room_size_m2);
@@ -95,16 +95,20 @@ function calculateEstimate({ room_size_m2, product_brand, product_range, subfloo
   if (scenario === "mixed_wood") {
     const gf = rangeData?.["gf_ply_screed"] ?? 60;
     const up = rangeData?.["upstairs_ply_feather"] ?? 60;
-    base = (gf * 0.5) + (up * 0.5);
+    const upPct = (mix_floor ?? 50) / 100;        // value = Upstairs %
+    base = (gf * (1 - upPct)) + (up * upPct);
   } else if (scenario === "mixed_concrete") {
-    const sc = rangeData?.["screed"] ?? 60;
-    const dp = rangeData?.["dpm_sandwich"] ?? 60;
-    base = (sc * 0.5) + (dp * 0.5);
+    const wood = ((rangeData?.["gf_ply_screed"] ?? 60) + (rangeData?.["upstairs_ply_feather"] ?? 60)) / 2;
+    const conc = rangeData?.["dpm_sandwich"] ?? 60;
+    const concPct = (mix_subfloor ?? 50) / 100;   // value = Concrete %
+    base = (wood * (1 - concPct)) + (conc * concPct);
   } else if (scenario === "mixed_concrete_age") {
     const dp  = rangeData?.["dpm_sandwich"]     ?? 60;
     const gr  = rangeData?.["grind_dpm_screed"] ?? 60;
     const sc  = rangeData?.["screed"]           ?? 60;
-    base = (dp * 0.50) + (gr * 0.25) + (sc * 0.25);
+    const newerPct = (mix_concrete_age ?? 50) / 100; // value = Newer %
+    const olderPct = 1 - newerPct;
+    base = (dp * olderPct) + (gr * newerPct * 0.5) + (sc * newerPct * 0.5);
   } else {
     base = rangeData?.[scenario] ?? 60;
   }
@@ -265,6 +269,29 @@ function Btn({ onClick, disabled, children, secondary }) {
   );
 }
 
+function MixSlider({ leftLabel, rightLabel, value, onChange }) {
+  return (
+    <div style={{ marginTop: 16, marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontFamily: "'Montserrat', sans-serif", color: C.charcoal, fontWeight: 600 }}>
+          {leftLabel}: <span style={{ color: C.teal }}>{100 - value}%</span>
+        </span>
+        <span style={{ fontSize: 12, fontFamily: "'Montserrat', sans-serif", color: C.charcoal, fontWeight: 600 }}>
+          {rightLabel}: <span style={{ color: C.teal }}>{value}%</span>
+        </span>
+      </div>
+      <input
+        type="range" min="0" max="100" step="5" value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{ width: "100%", accentColor: C.teal, cursor: "pointer" }}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ fontSize: 10, color: C.muted, fontFamily: "'Montserrat', sans-serif" }}>100% {leftLabel}</span>
+        <span style={{ fontSize: 10, color: C.muted, fontFamily: "'Montserrat', sans-serif" }}>100% {rightLabel}</span>
+      </div>
+    </div>
+  );
+}
 const sh = { fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 700, color: C.charcoal, margin: "0 0 6px 0", letterSpacing: "-0.01em" };
 const sp = { fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: C.muted, margin: "0 0 28px 0", lineHeight: 1.6, fontWeight: 400 };
 
@@ -397,6 +424,23 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
                 onClick={() => setData(d => ({ ...d, floor_level: o.value }))} />
             ))}
           </div>
+          {data.floor_level === "mixed" && (
+            <MixSlider
+              leftLabel="Ground Floor" rightLabel="Upstairs"
+              value={data.mix_floor ?? 50}
+              onChange={v => setData(d => ({ ...d, mix_floor: v }))}
+            />
+          )}
+        </div>
+      )}
+
+      {data.subfloor_type === "mixed" && (
+        <div style={{ marginBottom: 20 }}>
+          <MixSlider
+            leftLabel="Timber" rightLabel="Concrete"
+            value={data.mix_subfloor ?? 50}
+            onChange={v => setData(d => ({ ...d, mix_subfloor: v }))}
+          />
         </div>
       )}
 
@@ -426,6 +470,13 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
                     onClick={() => setData(d => ({ ...d, property_age: o.value }))} />
                 ))}
               </div>
+              {data.property_age === "mixed_age" && (
+                <MixSlider
+                  leftLabel="Pre-1970" rightLabel="Newer"
+                  value={data.mix_concrete_age ?? 50}
+                  onChange={v => setData(d => ({ ...d, mix_concrete_age: v }))}
+                />
+              )}
             </div>
           )}
         </div>
@@ -439,8 +490,8 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
   );
 }
 
-function StepContact({ data, setData, onNext, onBack }) {
-  const valid = data.name.trim() && data.email.includes("@") && data.phone.trim().length >= 7 && data.postcode.trim().length >= 5 && data.uplift !== "";
+function StepContact({ data, setData, onNext }) {
+  const valid = data.name.trim() && data.email.includes("@") && data.phone.trim().length >= 7 && data.postcode.trim().length >= 5;
   return (
     <div>
       <h2 style={sh}>Let's get started</h2>
@@ -450,17 +501,6 @@ function StepContact({ data, setData, onNext, onBack }) {
         <div><Label>Email address</Label><Input value={data.email} onChange={v => setData(d => ({ ...d, email: v }))} placeholder="jane@example.com" /></div>
         <div><Label>Phone number</Label><Input value={data.phone} onChange={v => setData(d => ({ ...d, phone: v }))} placeholder="07700 900000" /></div>
         <div><Label>Postcode</Label><Input value={data.postcode} onChange={v => setData(d => ({ ...d, postcode: v }))} placeholder="CV32 4AB" /></div>
-        <div>
-          <Label>Is there existing flooring to be uplifted and disposed of?</Label>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }].map(o => (
-              <div key={o.value} style={{ flex: 1 }}>
-                <OptionCard label={o.label} selected={data.uplift === o.value}
-                  onClick={() => setData(d => ({ ...d, uplift: o.value }))} />
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       <p style={{ fontSize: 11, color: "#aaa", fontFamily: "'Montserrat', sans-serif", marginBottom: 24, lineHeight: 1.6 }}>
         Your details are used solely to send your estimate and arrange a survey. We do not share your data.
@@ -526,9 +566,6 @@ function StepEstimate({ data, onRestart }) {
       <div style={{ background: C.tealLight, border: `1.5px solid ${C.teal}55`, borderRadius: 8, padding: "14px 16px", marginBottom: 20, fontSize: 12, color: C.charcoalMid, fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7 }}>
         <strong style={{ color: C.tealDark }}>Please note:</strong> This is a budgetary estimate only and is subject to a site survey. Priory Flooring acts as an agent for the customer in arranging a suitably qualified fitter. All prices are inclusive of VAT and fitting.<br /><br />
         <strong style={{ color: C.tealDark }}>This estimate does not include:</strong> the handling of any appliances or furniture, or any door trimming required after installation.
-        {data.uplift === "yes" && (
-          <span><br /><br /><strong style={{ color: C.tealDark }}>Uplift & disposal:</strong> You have indicated there is existing flooring to be uplifted and disposed of. This has not been included in this estimate and will be confirmed at survey.</span>
-        )}
       </div>
 
       {/* Survey CTA */}
@@ -568,6 +605,7 @@ function StepEstimate({ data, onRestart }) {
 const defaultData = {
   room_size_m2: "", product_brand: "", product_range: "",
   subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
+  mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
   name: "", email: "", phone: "", postcode: "", uplift: "",
 };
 
