@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const EMAILJS_SERVICE_ID  = "service_2mp4ist";
-const EMAILJS_TEMPLATE_ID = "template_nz76zgm";
+const EMAILJS_TEMPLATE_ID = "nz76zgm";
 const EMAILJS_PUBLIC_KEY  = "YREjE4LN9Cwe8Sqll";
 
 // ─── Pricing Data (VAT inclusive) ─────────────────────────────────────────────
