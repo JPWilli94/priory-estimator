@@ -131,7 +131,7 @@ const C = {
   inputBg:     "#f9fafa",
 };
 
-const steps = ["Area", "Product", "Subfloor", "Contact", "Estimate"];
+const steps = ["Contact", "Area", "Product", "Subfloor", "Estimate"];
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 function ProgressBar({ current }) {
@@ -443,8 +443,8 @@ function StepContact({ data, setData, onNext, onBack }) {
   const valid = data.name.trim() && data.email.includes("@") && data.phone.trim().length >= 7 && data.postcode.trim().length >= 5 && data.uplift !== "";
   return (
     <div>
-      <h2 style={sh}>Almost there</h2>
-      <p style={sp}>Enter your details to receive your estimate.</p>
+      <h2 style={sh}>Let's get started</h2>
+      <p style={sp}>Enter your details once and run as many estimates as you need.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
         <div><Label>Full name</Label><Input value={data.name} onChange={v => setData(d => ({ ...d, name: v }))} placeholder="Jane Smith" /></div>
         <div><Label>Email address</Label><Input value={data.email} onChange={v => setData(d => ({ ...d, email: v }))} placeholder="jane@example.com" /></div>
@@ -465,9 +465,8 @@ function StepContact({ data, setData, onNext, onBack }) {
       <p style={{ fontSize: 11, color: "#aaa", fontFamily: "'Montserrat', sans-serif", marginBottom: 24, lineHeight: 1.6 }}>
         Your details are used solely to send your estimate and arrange a survey. We do not share your data.
       </p>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <Btn onClick={onBack} secondary>← Back</Btn>
-        <Btn onClick={onNext} disabled={!valid}>View Estimate →</Btn>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
       </div>
     </div>
   );
@@ -558,7 +557,7 @@ function StepEstimate({ data, onRestart }) {
 
       <div style={{ textAlign: "center" }}>
         <button onClick={onRestart} style={{ background: "none", border: "none", color: "#aaa", fontFamily: "'Montserrat', sans-serif", fontSize: 12, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
-          Start a new estimate
+          New estimate — your details will be kept
         </button>
       </div>
     </div>
@@ -577,7 +576,7 @@ export default function PrioryEstimator() {
   const [data, setData] = useState(defaultData);
   const next    = () => setStep(s => s + 1);
   const back    = () => setStep(s => s - 1);
-  const restart = () => { setStep(0); setData(defaultData); };
+  const restart = () => setStep(1); // Keep contact details, restart from Area
 
   return (
     <>
@@ -608,10 +607,10 @@ export default function PrioryEstimator() {
           {/* Card */}
           <div style={{ background: C.card, borderRadius: 12, padding: "32px 28px", boxShadow: "0 4px 24px rgba(30,36,39,0.10)", border: `1px solid ${C.border}` }}>
             <ProgressBar current={step} />
-            {step === 0 && <StepRoom     data={data} setData={setData} onNext={next} />}
-            {step === 1 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 2 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 3 && <StepContact  data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 0 && <StepContact  data={data} setData={setData} onNext={next} />}
+            {step === 1 && <StepRoom     data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 2 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 3 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
             {step === 4 && <StepEstimate data={data} onRestart={restart} />}
           </div>
 
