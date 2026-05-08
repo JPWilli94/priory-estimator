@@ -42,8 +42,8 @@ const pricingData = {
 
 const confidenceMultipliers = {
   high:   { low: 0.98, high: 1.05 },
-  medium: { low: 1.00, high: 1.10 },
-  low:    { low: 1.05, high: 1.30 },
+  medium: { low: 0.95, high: 1.10 },
+  low:    { low: 0.90, high: 1.30 },
 };
 
 const MIN_JOB_VALUE = 250;
@@ -301,16 +301,27 @@ const sp = { fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: C.mute
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 function StepRoom({ data, setData, onNext }) {
-  const valid = parseFloat(data.room_size_m2) >= 1;
+  const area = parseFloat(data.room_size_m2);
+  const valid = area >= 1;
+  const isLarge = area > 100;
   return (
     <div>
       <h2 style={sh}>What's the total area?</h2>
       <p style={sp}>Enter the total floor area you need covered — this can span more than one room.</p>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 16 }}>
         <Label>Total area (m²)</Label>
         <Input type="number" min="1" value={data.room_size_m2}
           onChange={v => setData(d => ({ ...d, room_size_m2: v }))} placeholder="e.g. 25" />
       </div>
+      {isLarge && (
+        <div style={{
+          background: "#fff8e6", border: "1.5px solid #f0c040",
+          borderRadius: 8, padding: "12px 16px", marginBottom: 16,
+          fontSize: 13, color: "#7a5c00", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.6,
+        }}>
+          <strong>Large area detected.</strong> For areas over 100m² we recommend calling us directly on <strong>01926 833 363</strong> for a more tailored estimate. You're welcome to continue if you'd like a rough guide.
+        </div>
+      )}
       <div style={{ textAlign: "right" }}>
         <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
       </div>
@@ -495,16 +506,36 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
 }
 
 function StepContact({ data, setData, onNext }) {
-  const valid = data.name.trim() && data.email.includes("@") && data.phone.trim().length >= 7 && data.postcode.trim().length >= 5;
+  const isValidName     = data.name.trim().split(" ").filter(w => w.length > 0).length >= 2;
+  const isValidEmail    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email);
+  const isValidPhone    = /^0\d{10}$/.test(data.phone.replace(/\s/g, ""));
+  const isValidPostcode = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(data.postcode.trim());
+  const valid = isValidName && isValidEmail && isValidPhone && isValidPostcode;
   return (
     <div>
       <h2 style={sh}>Let's get started</h2>
       <p style={sp}>Enter your details once and run as many estimates as you need.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
-        <div><Label>Full name</Label><Input value={data.name} onChange={v => setData(d => ({ ...d, name: v }))} placeholder="Jane Smith" /></div>
-        <div><Label>Email address</Label><Input value={data.email} onChange={v => setData(d => ({ ...d, email: v }))} placeholder="jane@example.com" /></div>
-        <div><Label>Phone number</Label><Input value={data.phone} onChange={v => setData(d => ({ ...d, phone: v }))} placeholder="07700 900000" /></div>
-        <div><Label>Postcode</Label><Input value={data.postcode} onChange={v => setData(d => ({ ...d, postcode: v }))} placeholder="CV32 4AB" /></div>
+        <div>
+          <Label>Full name</Label>
+          <Input value={data.name} onChange={v => setData(d => ({ ...d, name: v }))} placeholder="Jane Smith" />
+          {data.name.length > 0 && !isValidName && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter your first and last name</p>}
+        </div>
+        <div>
+          <Label>Email address</Label>
+          <Input value={data.email} onChange={v => setData(d => ({ ...d, email: v }))} placeholder="jane@example.com" />
+          {data.email.length > 0 && !isValidEmail && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter a valid email address</p>}
+        </div>
+        <div>
+          <Label>Phone number</Label>
+          <Input value={data.phone} onChange={v => setData(d => ({ ...d, phone: v }))} placeholder="07700 900000" />
+          {data.phone.length > 0 && !isValidPhone && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter a valid UK phone number starting with 0</p>}
+        </div>
+        <div>
+          <Label>Postcode</Label>
+          <Input value={data.postcode} onChange={v => setData(d => ({ ...d, postcode: v }))} placeholder="CV32 4AB" />
+          {data.postcode.length > 0 && !isValidPostcode && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter a valid UK postcode</p>}
+        </div>
       </div>
       <p style={{ fontSize: 11, color: "#aaa", fontFamily: "'Montserrat', sans-serif", marginBottom: 24, lineHeight: 1.6 }}>
         Your details are used solely to send your estimate and arrange a survey. We do not share your data.
