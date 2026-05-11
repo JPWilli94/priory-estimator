@@ -4,41 +4,66 @@ const EMAILJS_SERVICE_ID  = "service_2mp4ist";
 const EMAILJS_TEMPLATE_ID = "template_4l4phuh";
 const EMAILJS_PUBLIC_KEY  = "YREjE4LN9Cwe8Sqll";
 
-// ─── Pricing Data (VAT inclusive) ─────────────────────────────────────────────
-// ─── Pricing Data (VAT inclusive, product price + scenario price per m²) ──────
-const pricingData = {
+// ─── Pricing Data — Three-component structure (all inc. VAT) ─────────────────
+// Product costs per m² (varies by brand/range)
+const productCosts = {
   "Amtico": {
-    "First Woods/Stones":        { tier: 1, screed: 69.99, gf_ply_screed: 89.99, upstairs_ply_feather: 77.99, grind_dpm_screed: 90.99, dpm_sandwich: 105.99 },
-    "First Laying Parquet":      { tier: 1, screed: 89.99, gf_ply_screed: 109.99, upstairs_ply_feather: 97.99, grind_dpm_screed: 110.99, dpm_sandwich: 125.99 },
-    "Spacia Woods/Stones":       { tier: 2, screed: 84.99, gf_ply_screed: 104.99, upstairs_ply_feather: 92.99, grind_dpm_screed: 105.99, dpm_sandwich: 120.99 },
-    "Spacia Laying Patterns":    { tier: 2, screed: 97.99, gf_ply_screed: 117.99, upstairs_ply_feather: 105.99, grind_dpm_screed: 118.99, dpm_sandwich: 133.99 },
-    "Form Woods/Stones":         { tier: 3, screed: 103.99, gf_ply_screed: 123.99, upstairs_ply_feather: 111.99, grind_dpm_screed: 124.99, dpm_sandwich: 139.99 },
-    "Form Laying Patterns":      { tier: 3, screed: 116.99, gf_ply_screed: 136.99, upstairs_ply_feather: 124.99, grind_dpm_screed: 137.99, dpm_sandwich: 152.99 },
-    "Signature Woods/Stones":    { tier: 4, screed: 114.99, gf_ply_screed: 134.99, upstairs_ply_feather: 122.99, grind_dpm_screed: 135.99, dpm_sandwich: 150.99 },
-    "Signature Laying Patterns": { tier: 4, screed: 137.99, gf_ply_screed: 152.99, upstairs_ply_feather: 140.99, grind_dpm_screed: 152.99, dpm_sandwich: 167.99 },
+    "First Woods/Stones":        { cost: 32, tier: 1, installType: "ws" },
+    "First Laying Parquet":      { cost: 41, tier: 1, installType: "lp" },
+    "Spacia Woods/Stones":       { cost: 47, tier: 2, installType: "ws" },
+    "Spacia Laying Patterns":    { cost: 49, tier: 2, installType: "lp" },
+    "Form Woods/Stones":         { cost: 66, tier: 3, installType: "ws" },
+    "Form Laying Patterns":      { cost: 68, tier: 3, installType: "lp" },
+    "Signature Woods/Stones":    { cost: 77, tier: 4, installType: "ws" },
+    "Signature Laying Patterns": { cost: 79, tier: 4, installType: "lp_premium" },
   },
   "Karndean": {
-    "Knight Tile Woods/Stones":       { tier: 1, screed: 69.99, gf_ply_screed: 87.99, upstairs_ply_feather: 76.99, grind_dpm_screed: 89.99, dpm_sandwich: 104.99 },
-    "Knight Tile Parquet":            { tier: 1, screed: 80.99, gf_ply_screed: 98.99, upstairs_ply_feather: 87.99, grind_dpm_screed: 101.99, dpm_sandwich: 116.99 },
-    "Van Gogh Woods/Stones":          { tier: 2, screed: 82.99, gf_ply_screed: 100.99, upstairs_ply_feather: 89.99, grind_dpm_screed: 102.99, dpm_sandwich: 117.99 },
-    "Van Gogh Parquet/Herringbone":   { tier: 2, screed: 98.99, gf_ply_screed: 116.99, upstairs_ply_feather: 104.99, grind_dpm_screed: 119.99, dpm_sandwich: 134.99 },
-    "Art Select Woods/Stones":        { tier: 3, screed: 100.49, gf_ply_screed: 118.49, upstairs_ply_feather: 107.49, grind_dpm_screed: 120.49, dpm_sandwich: 135.49 },
-    "Art Select Parquet/Random Tile": { tier: 3, screed: 128.99, gf_ply_screed: 146.99, upstairs_ply_feather: 135.99, grind_dpm_screed: 149.99, dpm_sandwich: 164.99 },
-    "Art Select Basketweave":         { tier: 3, screed: 139.99, gf_ply_screed: 157.99, upstairs_ply_feather: 146.99, grind_dpm_screed: 160.99, dpm_sandwich: 175.99 },
+    "Knight Tile Woods/Stones":       { cost: 32, tier: 1, installType: "ws" },
+    "Knight Tile Parquet":            { cost: 37, tier: 1, installType: "lp" },
+    "Van Gogh Woods/Stones":          { cost: 45, tier: 2, installType: "ws" },
+    "Van Gogh Parquet/Herringbone":   { cost: 45, tier: 2, installType: "lp" },
+    "Art Select Woods/Stones":        { cost: 62, tier: 3, installType: "ws" },
+    "Art Select Parquet/Random Tile": { cost: 70, tier: 3, installType: "lp" },
+    "Art Select Basketweave":         { cost: 87, tier: 3, installType: "lp_premium" },
   },
   "Invictus": {
-    "Primus Woods/Stones":         { tier: 1, screed: 67.99, gf_ply_screed: 85.99, upstairs_ply_feather: 74.99, grind_dpm_screed: 87.99, dpm_sandwich: 102.99 },
-    "Primus Parquet":              { tier: 1, screed: 84.99, gf_ply_screed: 102.99, upstairs_ply_feather: 90.99, grind_dpm_screed: 104.99, dpm_sandwich: 119.99 },
-    "Maximus Woods/Stones":        { tier: 2, screed: 76.99, gf_ply_screed: 94.99, upstairs_ply_feather: 83.99, grind_dpm_screed: 96.99, dpm_sandwich: 111.99 },
-    "Maximus Parquet/Herringbone": { tier: 2, screed: 92.99, gf_ply_screed: 110.99, upstairs_ply_feather: 99.99, grind_dpm_screed: 112.99, dpm_sandwich: 127.99 },
-    "Ultimus Woods":               { tier: 3, screed: 87.99, gf_ply_screed: 105.99, upstairs_ply_feather: 94.99, grind_dpm_screed: 107.99, dpm_sandwich: 122.99 },
-    "Ultimus Parquet/Herringbone": { tier: 3, screed: 103.99, gf_ply_screed: 121.99, upstairs_ply_feather: 110.99, grind_dpm_screed: 123.99, dpm_sandwich: 138.99 },
+    "Primus Woods/Stones":         { cost: 30, tier: 1, installType: "ws" },
+    "Primus Parquet":              { cost: 36, tier: 1, installType: "lp" },
+    "Maximus Woods/Stones":        { cost: 39, tier: 2, installType: "ws" },
+    "Maximus Parquet/Herringbone": { cost: 44, tier: 2, installType: "lp" },
+    "Ultimus Woods":               { cost: 50, tier: 3, installType: "ws" },
+    "Ultimus Parquet/Herringbone": { cost: 55, tier: 3, installType: "lp" },
   },
   "J2": {
-    "Natural Timbers Woods/Stones": { tier: 2, screed: 74.99, gf_ply_screed: 92.99, upstairs_ply_feather: 81.99, grind_dpm_screed: 94.99, dpm_sandwich: 109.99 },
-    "Natural Timbers Parquet":      { tier: 2, screed: 92.99, gf_ply_screed: 110.99, upstairs_ply_feather: 99.99, grind_dpm_screed: 112.99, dpm_sandwich: 127.99 },
+    "Natural Timbers Woods/Stones": { cost: 37, tier: 2, installType: "ws" },
+    "Natural Timbers Parquet":      { cost: 42, tier: 2, installType: "lp" },
   },
 };
+
+// Subfloor materials costs per m² (same across all brands)
+const materialsCosts = {
+  screed:               19,
+  gf_ply_screed:        33,
+  upstairs_ply_feather: 22,
+  grind_dpm_screed:     36,
+  dpm_sandwich:         49,
+};
+
+// Installation labour costs per m² by install type and scenario
+// ws = Woods/Stones, lp = Laying Pattern, lp_premium = Art Select Basketweave / Signature Laying Patterns
+const labourCosts = {
+  ws: {
+    screed: 19, gf_ply_screed: 26, upstairs_ply_feather: 23, grind_dpm_screed: 24, dpm_sandwich: 26,
+  },
+  lp: {
+    screed: 30, gf_ply_screed: 37, upstairs_ply_feather: 34, grind_dpm_screed: 35, dpm_sandwich: 37,
+  },
+  lp_premium: {
+    screed: 35, gf_ply_screed: 42, upstairs_ply_feather: 39, grind_dpm_screed: 40, dpm_sandwich: 42,
+  },
+};
+
+const MIN_INSTALL_CHARGE = 150;
 
 const confidenceMultipliers = {
   high:   { low: 0.98, high: 1.05 },
@@ -46,7 +71,6 @@ const confidenceMultipliers = {
   low:    { low: 0.90, high: 1.30 },
 };
 
-const MIN_JOB_VALUE = 250;
 const VOLUME_DISCOUNT_THRESHOLD = 50;
 const VOLUME_DISCOUNT_RATE = 0.05;
 
@@ -88,39 +112,58 @@ function deriveScenario({ subfloor_type, floor_level, is_new_build, property_age
   return { scenario: "dpm_sandwich", confidence: "low" };
 }
 
+// Helper: get total per m² for a given scenario and install type
+function getScenarioRate(scenario, installType) {
+  const materials = materialsCosts[scenario] ?? 19;
+  const labour = labourCosts[installType]?.[scenario] ?? 19;
+  return { materials, labour };
+}
+
 function calculateEstimate({ room_size_m2, product_brand, product_range, subfloor_type, floor_level, is_new_build, property_age, mix_floor, mix_subfloor, mix_concrete_age }) {
   const { scenario, confidence } = deriveScenario({ subfloor_type, floor_level, is_new_build, property_age });
-  const rangeData = pricingData[product_brand]?.[product_range];
+  const rangeData = productCosts[product_brand]?.[product_range];
+  const productCost = rangeData?.cost ?? 40;
+  const installType = rangeData?.installType ?? "ws";
   const area = parseFloat(room_size_m2);
   const m = confidenceMultipliers[confidence];
   const volumeDiscount = area > VOLUME_DISCOUNT_THRESHOLD ? (1 - VOLUME_DISCOUNT_RATE) : 1;
 
-  let base;
+  let materialsPerM2, labourPerM2;
+
   if (scenario === "mixed_wood") {
-    const gf = rangeData?.["gf_ply_screed"] ?? 60;
-    const up = rangeData?.["upstairs_ply_feather"] ?? 60;
-    const upPct = (mix_floor ?? 50) / 100;        // value = Upstairs %
-    base = (gf * (1 - upPct)) + (up * upPct);
+    const upPct = (mix_floor ?? 50) / 100;
+    const gf = getScenarioRate("gf_ply_screed", installType);
+    const up = getScenarioRate("upstairs_ply_feather", installType);
+    materialsPerM2 = (materialsCosts.gf_ply_screed * (1 - upPct)) + (materialsCosts.upstairs_ply_feather * upPct);
+    labourPerM2 = (gf.labour * (1 - upPct)) + (up.labour * upPct);
   } else if (scenario === "mixed_concrete") {
-    const wood = ((rangeData?.["gf_ply_screed"] ?? 60) + (rangeData?.["upstairs_ply_feather"] ?? 60)) / 2;
-    const conc = rangeData?.["dpm_sandwich"] ?? 60;
-    const concPct = (mix_subfloor ?? 50) / 100;   // value = Concrete %
-    base = (wood * (1 - concPct)) + (conc * concPct);
+    const concPct = (mix_subfloor ?? 50) / 100;
+    const avgWoodMat = (materialsCosts.gf_ply_screed + materialsCosts.upstairs_ply_feather) / 2;
+    const avgWoodLab = (labourCosts[installType].gf_ply_screed + labourCosts[installType].upstairs_ply_feather) / 2;
+    materialsPerM2 = (avgWoodMat * (1 - concPct)) + (materialsCosts.dpm_sandwich * concPct);
+    labourPerM2 = (avgWoodLab * (1 - concPct)) + (labourCosts[installType].dpm_sandwich * concPct);
   } else if (scenario === "mixed_concrete_age") {
-    const dp  = rangeData?.["dpm_sandwich"]     ?? 60;
-    const gr  = rangeData?.["grind_dpm_screed"] ?? 60;
-    const sc  = rangeData?.["screed"]           ?? 60;
-    const newerPct = (mix_concrete_age ?? 50) / 100; // value = Newer %
+    const newerPct = (mix_concrete_age ?? 50) / 100;
     const olderPct = 1 - newerPct;
-    base = (dp * olderPct) + (gr * newerPct * 0.5) + (sc * newerPct * 0.5);
+    materialsPerM2 = (materialsCosts.dpm_sandwich * olderPct) + (materialsCosts.grind_dpm_screed * newerPct * 0.5) + (materialsCosts.screed * newerPct * 0.5);
+    labourPerM2 = (labourCosts[installType].dpm_sandwich * olderPct) + (labourCosts[installType].grind_dpm_screed * newerPct * 0.5) + (labourCosts[installType].screed * newerPct * 0.5);
   } else {
-    base = rangeData?.[scenario] ?? 60;
+    materialsPerM2 = materialsCosts[scenario] ?? 19;
+    labourPerM2 = labourCosts[installType]?.[scenario] ?? 19;
   }
 
-  let total_low  = Math.round(base * m.low  * area * volumeDiscount);
-  let total_high = Math.round(base * m.high * area * volumeDiscount);
-  total_low  = Math.max(total_low,  MIN_JOB_VALUE);
-  total_high = Math.max(total_high, MIN_JOB_VALUE);
+  // Calculate components
+  const totalProduct   = productCost * area;
+  const totalMaterials = materialsPerM2 * area;
+  const rawLabour      = labourPerM2 * area;
+  const totalLabour    = Math.max(rawLabour, MIN_INSTALL_CHARGE);
+
+  // Total before confidence
+  const subtotal = (totalProduct + totalMaterials + totalLabour) * volumeDiscount;
+
+  let total_low  = Math.round(subtotal * m.low);
+  let total_high = Math.round(subtotal * m.high);
+
   return { scenario, confidence, total_low, total_high };
 }
 
@@ -338,8 +381,8 @@ function StarRating({ tier }) {
 }
 
 function StepProduct({ data, setData, onNext, onBack }) {
-  const brands = Object.keys(pricingData);
-  const ranges = data.product_brand ? Object.keys(pricingData[data.product_brand]) : [];
+  const brands = Object.keys(productCosts);
+  const ranges = data.product_brand ? Object.keys(productCosts[data.product_brand]) : [];
   const valid = data.product_brand && data.product_range;
   return (
     <div>
@@ -356,7 +399,7 @@ function StepProduct({ data, setData, onNext, onBack }) {
           <Label>Range</Label>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {ranges.map(r => {
-              const tier = pricingData[data.product_brand][r].tier;
+              const tier = productCosts[data.product_brand][r].tier;
               const selected = data.product_range === r;
               return (
                 <div key={r} onClick={() => setData(d => ({ ...d, product_range: r }))} style={{
@@ -608,7 +651,6 @@ function StepEstimate({ data, onRestart }) {
           {[
             { label: "Product",    value: `${data.product_brand} – ${data.product_range}` },
             { label: "Area",       value: `${data.room_size_m2} m²` },
-            { label: "Min. value", value: "£250 inc. VAT" },
           ].map(row => (
             <div key={row.label}>
               <div style={{ fontSize: 10, color: C.muted, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
