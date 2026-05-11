@@ -580,6 +580,24 @@ function StepContact({ data, setData, onNext }) {
           {data.postcode.length > 0 && !isValidPostcode && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter a valid UK postcode</p>}
         </div>
       </div>
+      <div style={{ marginBottom: 20 }}>
+        <div onClick={() => setData(d => ({ ...d, marketing: !d.marketing }))} style={{
+          display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
+        }}>
+          <div style={{
+            width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+            border: `1.5px solid ${data.marketing ? C.teal : C.border}`,
+            background: data.marketing ? C.teal : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.2s",
+          }}>
+            {data.marketing && <span style={{ color: "#fff", fontSize: 13, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={{ fontSize: 12, color: C.muted, fontFamily: "'Montserrat', sans-serif", lineHeight: 1.5 }}>
+            I'm happy to receive occasional marketing communications from Priory Carpets & Flooring. You can unsubscribe at any time.
+          </span>
+        </div>
+      </div>
       <p style={{ fontSize: 11, color: "#aaa", fontFamily: "'Montserrat', sans-serif", marginBottom: 24, lineHeight: 1.6 }}>
         Your details are used solely to send your estimate and arrange a survey. We do not share your data.
       </p>
@@ -620,6 +638,7 @@ function StepEstimate({ data, onRestart }) {
           estimate_low:  fmt(result.total_low),
           estimate_high: fmt(result.total_high),
           subfloor:      subfloorLabel,
+          marketing:     data.marketing ? "Yes — opted in" : "No — not opted in",
         }, EMAILJS_PUBLIC_KEY);
         setEmailSent(true);
         console.log("Email sent successfully");
@@ -712,7 +731,7 @@ const defaultData = {
   room_size_m2: "", product_brand: "", product_range: "",
   subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
   mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
-  name: "", email: "", phone: "", postcode: "", uplift: "",
+  name: "", email: "", phone: "", postcode: "", marketing: false,
 };
 
 export default function PrioryEstimator() {
