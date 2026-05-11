@@ -553,7 +553,7 @@ function StepContact({ data, setData, onNext }) {
   const isValidEmail    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email);
   const isValidPhone    = /^0\d{10}$/.test(data.phone.replace(/\s/g, ""));
   const isValidPostcode = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(data.postcode.trim());
-  const valid = isValidName && isValidEmail && isValidPhone && isValidPostcode;
+  const valid = isValidName && isValidEmail && isValidPhone && isValidPostcode && data.dataConsent;
   return (
     <div>
       <h2 style={sh}>Let's get started</h2>
@@ -580,7 +580,23 @@ function StepContact({ data, setData, onNext }) {
           {data.postcode.length > 0 && !isValidPostcode && <p style={{ fontSize: 11, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>Please enter a valid UK postcode</p>}
         </div>
       </div>
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div onClick={() => setData(d => ({ ...d, dataConsent: !d.dataConsent }))} style={{
+          display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
+        }}>
+          <div style={{
+            width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+            border: `1.5px solid ${data.dataConsent ? C.teal : C.border}`,
+            background: data.dataConsent ? C.teal : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.2s",
+          }}>
+            {data.dataConsent && <span style={{ color: "#fff", fontSize: 13, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={{ fontSize: 12, color: C.charcoal, fontFamily: "'Montserrat', sans-serif", lineHeight: 1.5 }}>
+            I consent to Priory Carpets & Flooring processing my data to provide this estimate and contact me regarding my enquiry. <span style={{ color: "#c0392b" }}>*</span>
+          </span>
+        </div>
         <div onClick={() => setData(d => ({ ...d, marketing: !d.marketing }))} style={{
           display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
         }}>
@@ -731,7 +747,7 @@ const defaultData = {
   room_size_m2: "", product_brand: "", product_range: "",
   subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
   mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
-  name: "", email: "", phone: "", postcode: "", marketing: false,
+  name: "", email: "", phone: "", postcode: "", dataConsent: false, marketing: false,
 };
 
 export default function PrioryEstimator() {
@@ -763,7 +779,7 @@ export default function PrioryEstimator() {
             </div>
             <div style={{ width: 40, height: 2, background: C.teal, margin: "0 auto 14px", borderRadius: 2 }} />
             <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, color: C.teal, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-              LVT Estimator
+              Luxury Vinyl Tile Estimator
             </div>
           </div>
 
