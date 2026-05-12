@@ -706,7 +706,7 @@ function StepEstimate({ data, onRestart }) {
       {/* Disclaimer */}
       <div style={{ background: C.tealLight, border: `1.5px solid ${C.teal}55`, borderRadius: 8, padding: "14px 16px", marginBottom: 20, fontSize: 12, color: C.charcoalMid, fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7 }}>
         <strong style={{ color: C.tealDark }}>Please note:</strong> This is a budgetary estimate only and is subject to a site survey. Priory Flooring acts as an agent for the customer in arranging a suitably qualified fitter. All prices are inclusive of VAT and fitting.<br /><br />
-        <strong style={{ color: C.tealDark }}>This estimate does not include:</strong> the handling of any appliances or furniture, or any door trimming required after installation.
+        <strong style={{ color: C.tealDark }}>This estimate does not include:</strong> the uplift and disposal of existing floor coverings, the handling of any appliances or furniture, or any door trimming required after installation.
       </div>
 
       {/* Survey CTA */}
