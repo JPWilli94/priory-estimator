@@ -182,7 +182,22 @@ const C = {
   inputBg:     "#f9fafa",
 };
 
-const steps = ["Contact", "Area", "Product", "Subfloor", "Estimate"];
+const steps = ["Area", "Product", "Subfloor", "Contact", "Estimate"];
+
+const roomOptions = [
+  "Kitchen",
+  "Living Room",
+  "Hallway",
+  "Landing",
+  "Bathroom",
+  "Bedroom",
+  "Dining Room",
+  "Utility Room",
+  "Conservatory",
+  "Study",
+  "Commercial / Office",
+  "Other",
+];
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 function ProgressBar({ current }) {
@@ -345,8 +360,18 @@ const sp = { fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: C.mute
 // ─── Steps ────────────────────────────────────────────────────────────────────
 function StepRoom({ data, setData, onNext }) {
   const area = parseFloat(data.room_size_m2);
-  const valid = area >= 1;
+  const validArea = area >= 1;
+  const validRooms = (data.rooms ?? []).length > 0;
+  const valid = validArea && validRooms;
   const isLarge = area > 100;
+
+  const toggleRoom = (room) => {
+    setData(d => {
+      const current = d.rooms ?? [];
+      return { ...d, rooms: current.includes(room) ? current.filter(r => r !== room) : [...current, room] };
+    });
+  };
+
   return (
     <div>
       <h2 style={sh}>What's the total area?</h2>
@@ -365,6 +390,29 @@ function StepRoom({ data, setData, onNext }) {
           <strong>Large area detected.</strong> For areas over 100m² we recommend calling us directly on <strong>01926 833 363</strong> for a more tailored estimate. You're welcome to continue if you'd like a rough guide.
         </div>
       )}
+
+      <div style={{ marginBottom: 20 }}>
+        <Label>Which room(s)? (select all that apply)</Label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {roomOptions.map(room => {
+            const selected = (data.rooms ?? []).includes(room);
+            return (
+              <div key={room} onClick={() => toggleRoom(room)} style={{
+                padding: "8px 14px", borderRadius: 20, cursor: "pointer",
+                border: `1.5px solid ${selected ? C.teal : C.border}`,
+                background: selected ? C.tealLight : C.inputBg,
+                fontSize: 12, fontFamily: "'Montserrat', sans-serif",
+                fontWeight: selected ? 600 : 400, color: C.charcoal,
+                transition: "all 0.2s",
+              }}>
+                {selected && <span style={{ color: C.teal, marginRight: 5 }}>✓</span>}
+                {room}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div style={{ textAlign: "right" }}>
         <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
       </div>
@@ -548,7 +596,7 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
   );
 }
 
-function StepContact({ data, setData, onNext }) {
+function StepContact({ data, setData, onNext, onBack }) {
   const isValidName     = data.name.trim().split(" ").filter(w => w.length > 0).length >= 2;
   const isValidEmail    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email);
   const isValidPhone    = /^0\d{10}$/.test(data.phone.replace(/\s/g, ""));
@@ -556,8 +604,8 @@ function StepContact({ data, setData, onNext }) {
   const valid = isValidName && isValidEmail && isValidPhone && isValidPostcode && data.dataConsent;
   return (
     <div>
-      <h2 style={sh}>Let's get started</h2>
-      <p style={sp}>Enter your details once and run as many estimates as you need.</p>
+      <h2 style={sh}>Almost there</h2>
+      <p style={sp}>Enter your details to view your estimate. We'll send a copy to your email for your records.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 16 }}>
         <div>
           <Label>Full name</Label>
@@ -617,8 +665,9 @@ function StepContact({ data, setData, onNext }) {
       <p style={{ fontSize: 11, color: "#aaa", fontFamily: "'Montserrat', sans-serif", marginBottom: 24, lineHeight: 1.6 }}>
         Your details are used solely to send your estimate and arrange a survey. We do not share your data.
       </p>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Btn onClick={onBack} secondary>← Back</Btn>
+        <Btn onClick={onNext} disabled={!valid}>View Estimate →</Btn>
       </div>
     </div>
   );
@@ -651,6 +700,7 @@ function StepEstimate({ data, onRestart }) {
           postcode:      data.postcode,
           product:       `${data.product_brand} – ${data.product_range}`,
           area:          data.room_size_m2,
+          rooms:         (data.rooms ?? []).join(", "),
           estimate_low:  fmt(result.total_low),
           estimate_high: fmt(result.total_high),
           subfloor:      subfloorLabel,
@@ -686,6 +736,7 @@ function StepEstimate({ data, onRestart }) {
           {[
             { label: "Product",    value: `${data.product_brand} – ${data.product_range}` },
             { label: "Area",       value: `${data.room_size_m2} m²` },
+            { label: "Rooms",      value: (data.rooms ?? []).join(", ") || "—" },
           ].map(row => (
             <div key={row.label}>
               <div style={{ fontSize: 10, color: C.muted, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
@@ -747,6 +798,7 @@ const defaultData = {
   room_size_m2: "", product_brand: "", product_range: "",
   subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
   mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
+  rooms: [],
   name: "", email: "", phone: "", postcode: "", dataConsent: false, marketing: false,
 };
 
@@ -755,7 +807,17 @@ export default function PrioryEstimator() {
   const [data, setData] = useState(defaultData);
   const next    = () => setStep(s => s + 1);
   const back    = () => setStep(s => s - 1);
-  const restart = () => setStep(1); // Keep contact details, restart from Area
+  const restart = () => {
+    // Reset estimate fields but keep contact details
+    setData(d => ({
+      ...d,
+      room_size_m2: "", product_brand: "", product_range: "",
+      subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
+      mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
+      rooms: [],
+    }));
+    setStep(0);
+  };
 
   return (
     <>
@@ -786,10 +848,10 @@ export default function PrioryEstimator() {
           {/* Card */}
           <div style={{ background: C.card, borderRadius: 12, padding: "32px 28px", boxShadow: "0 4px 24px rgba(30,36,39,0.10)", border: `1px solid ${C.border}` }}>
             <ProgressBar current={step} />
-            {step === 0 && <StepContact  data={data} setData={setData} onNext={next} />}
-            {step === 1 && <StepRoom     data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 2 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 3 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 0 && <StepRoom     data={data} setData={setData} onNext={next} />}
+            {step === 1 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 2 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 3 && <StepContact  data={data} setData={setData} onNext={next} onBack={back} />}
             {step === 4 && <StepEstimate data={data} onRestart={restart} />}
           </div>
 
