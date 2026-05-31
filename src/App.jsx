@@ -101,14 +101,16 @@ function calculateCarpetEstimate(data) {
   const area = parseFloat(data.room_size_m2) || 0;
   const numRooms = (data.rooms ?? []).length || 1;
 
-  // Carpet cost per m² — either manual price or tier midpoint
-  let carpetLow, carpetHigh;
+  // Carpet cost per m² and confidence
+  let carpetLow, carpetHigh, confidence;
   if (data.carpet_price_mode === "exact" && data.carpet_exact_price) {
     const exact = parseFloat(data.carpet_exact_price);
     carpetLow = exact; carpetHigh = exact;
+    confidence = "high";
   } else {
     const tier = carpetTiers[data.carpet_tier] ?? carpetTiers["Mid Range"];
     carpetLow = tier.low; carpetHigh = tier.high;
+    confidence = "medium";
   }
 
   const underlayRate = carpetUnderlays[data.carpet_underlay] ?? 7;
@@ -116,7 +118,6 @@ function calculateCarpetEstimate(data) {
   const numDoorBars  = parseInt(data.carpet_doorbar_qty) || 0;
   const numStairs = (data.rooms ?? []).includes("Staircase") ? (parseInt(data.carpet_stair_qty) || 0) : 0;
 
-  // Fixed components (same for low and high)
   // Hidden 10% discount on materials only for jobs 80m² or over
   const materialsDiscount = area >= CARPET_MATERIALS_DISCOUNT_THRESHOLD ? (1 - CARPET_MATERIALS_DISCOUNT_RATE) : 1;
 
@@ -131,10 +132,14 @@ function calculateCarpetEstimate(data) {
   const fixedTotal = gripperCost + underlayCost + doorBarCost + installCost + stairsCost + upliftCost
     + (CARPET_MISC_PER_M2 * area) + CARPET_ADMIN_FEE;
 
-  let total_low  = Math.round((carpetLow  * area) + fixedTotal);
-  let total_high = Math.round((carpetHigh * area) + fixedTotal);
+  // Confidence multipliers inline (defined after this function but needed here)
+  const multipliers = { high: { low: 0.98, high: 1.05 }, medium: { low: 0.95, high: 1.10 }, low: { low: 0.90, high: 1.30 } };
+  const m = multipliers[confidence];
 
-  return { total_low, total_high, confidence: "medium" };
+  let total_low  = Math.round(((carpetLow  * area) + fixedTotal) * m.low);
+  let total_high = Math.round(((carpetHigh * area) + fixedTotal) * m.high);
+
+  return { total_low, total_high, confidence };
 }
 
 const confidenceMultipliers = {
