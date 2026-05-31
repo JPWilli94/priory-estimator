@@ -65,6 +65,70 @@ const labourCosts = {
 
 const MIN_INSTALL_CHARGE = 150;
 
+// ─── Carpet Pricing Data (all inc. VAT) ──────────────────────────────────────
+const carpetTiers = {
+  "Budget":    { low: 10, high: 15, mid: 12.50 },
+  "Economy":   { low: 15, high: 20, mid: 17.50 },
+  "Mid Range": { low: 20, high: 30, mid: 25.00 },
+  "Premium":   { low: 30, high: 50, mid: 40.00 },
+  "Luxury":    { low: 50, high: 100, mid: 75.00 },
+};
+
+const carpetUnderlays = {
+  "Existing underlay (reuse)": 0,
+  "Budget — Super 10 (10mm)":              7,
+  "Mid Range — Jazz 9mm / Granduro 11mm":  8,
+  "Premium — Chromium 9mm / Dreamwalk 11mm": 10,
+};
+
+const carpetDoorBars = {
+  "Existing door bars (reuse)": 0,
+  "Standard": 10,
+  "Premium":  15,
+};
+
+const CARPET_GRIPPER_PER_ROOM   = 20;
+const CARPET_INSTALL_PER_M2     = 5;
+const CARPET_INSTALL_MIN        = 60;
+const CARPET_UPLIFT_PER_M2      = 5;
+const CARPET_STAIRCASE_SURCHARGE = 60;
+
+function calculateCarpetEstimate(data) {
+  const area = parseFloat(data.room_size_m2) || 0;
+  const numRooms = (data.rooms ?? []).length || 1;
+
+  // Carpet cost per m² — either manual price or tier midpoint
+  let carpetLow, carpetHigh;
+  if (data.carpet_price_mode === "exact" && data.carpet_exact_price) {
+    const exact = parseFloat(data.carpet_exact_price);
+    carpetLow = exact; carpetHigh = exact;
+  } else {
+    const tier = carpetTiers[data.carpet_tier] ?? carpetTiers["Mid Range"];
+    carpetLow = tier.low; carpetHigh = tier.high;
+  }
+
+  const underlayRate = carpetUnderlays[data.carpet_underlay] ?? 7;
+  const doorBarRate  = carpetDoorBars[data.carpet_doorbar_type] ?? 10;
+  const numDoorBars  = parseInt(data.carpet_doorbar_qty) || 0;
+  const numStairs    = data.carpet_stairs === "yes" ? (parseInt(data.carpet_stair_qty) || 0) : 0;
+
+  // Fixed components (same for low and high)
+  const gripperCost   = CARPET_GRIPPER_PER_ROOM * numRooms;
+  const underlayCost  = underlayRate * area;
+  const doorBarCost   = doorBarRate * numDoorBars;
+  const rawInstall    = CARPET_INSTALL_PER_M2 * area;
+  const installCost   = Math.max(rawInstall, CARPET_INSTALL_MIN);
+  const stairsCost    = CARPET_STAIRCASE_SURCHARGE * numStairs;
+  const upliftCost    = data.carpet_uplift === "yes" ? (CARPET_UPLIFT_PER_M2 * area) : 0;
+
+  const fixedTotal = gripperCost + underlayCost + doorBarCost + installCost + stairsCost + upliftCost;
+
+  let total_low  = Math.round((carpetLow  * area) + fixedTotal);
+  let total_high = Math.round((carpetHigh * area) + fixedTotal);
+
+  return { total_low, total_high, confidence: "medium" };
+}
+
 const confidenceMultipliers = {
   high:   { low: 0.98, high: 1.05 },
   medium: { low: 0.95, high: 1.10 },
@@ -182,7 +246,8 @@ const C = {
   inputBg:     "#f9fafa",
 };
 
-const steps = ["Area", "Product", "Subfloor", "Contact", "Estimate"];
+const stepsLVT    = ["Material", "Area", "Product", "Subfloor", "Contact", "Estimate"];
+const stepsCarpet = ["Material", "Area", "Carpet", "Options", "Contact", "Estimate"];
 
 const roomOptions = [
   "Kitchen",
@@ -200,7 +265,7 @@ const roomOptions = [
 ];
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
-function ProgressBar({ current }) {
+function ProgressBar({ current, steps }) {
   return (
     <div style={{ marginBottom: 32 }}>
       <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
@@ -358,7 +423,30 @@ const sh = { fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 7
 const sp = { fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: C.muted, margin: "0 0 28px 0", lineHeight: 1.6, fontWeight: 400 };
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
-function StepRoom({ data, setData, onNext }) {
+function StepMaterial({ data, setData, onNext }) {
+  const valid = data.material_type;
+  return (
+    <div>
+      <h2 style={sh}>What are you looking for?</h2>
+      <p style={sp}>Choose the type of flooring you'd like an estimate for.</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+        {[
+          { value: "lvt",    label: "Luxury Vinyl Tile (LVT)", sub: "Karndean, Amtico, Invictus & more" },
+          { value: "carpet", label: "Carpet",                  sub: "All ranges from budget to luxury" },
+        ].map(o => (
+          <OptionCard key={o.value} label={o.label} sub={o.sub}
+            selected={data.material_type === o.value}
+            onClick={() => setData(d => ({ ...d, material_type: o.value }))} />
+        ))}
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepRoom({ data, setData, onNext, onBack }) {
   const area = parseFloat(data.room_size_m2);
   const validArea = area >= 1;
   const validRooms = (data.rooms ?? []).length > 0;
@@ -413,7 +501,8 @@ function StepRoom({ data, setData, onNext }) {
         </div>
       </div>
 
-      <div style={{ textAlign: "right" }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Btn onClick={onBack} secondary>← Back</Btn>
         <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
       </div>
     </div>
@@ -596,6 +685,164 @@ function StepSubfloor({ data, setData, onNext, onBack }) {
   );
 }
 
+function StepCarpet({ data, setData, onNext, onBack }) {
+  const mode = data.carpet_price_mode ?? "tier";
+  const valid = mode === "tier" ? !!data.carpet_tier : (parseFloat(data.carpet_exact_price) > 0);
+  return (
+    <div>
+      <h2 style={sh}>Choose your carpet</h2>
+      <p style={sp}>Select a price band, or enter an exact price per m² if you already know the product.</p>
+
+      <div style={{ marginBottom: 20 }}>
+        <Label>How would you like to choose?</Label>
+        <div style={{ display: "flex", gap: 10 }}>
+          {[{ value: "tier", label: "By price band" }, { value: "exact", label: "Exact price per m²" }].map(o => (
+            <div key={o.value} style={{ flex: 1 }}>
+              <OptionCard label={o.label} selected={mode === o.value}
+                onClick={() => setData(d => ({ ...d, carpet_price_mode: o.value }))} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {mode === "tier" && (
+        <div style={{ marginBottom: 24 }}>
+          <Label>Price band</Label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {Object.entries(carpetTiers).map(([name, t]) => {
+              const selected = data.carpet_tier === name;
+              return (
+                <div key={name} onClick={() => setData(d => ({ ...d, carpet_tier: name }))} style={{
+                  border: `1.5px solid ${selected ? C.teal : C.border}`,
+                  borderRadius: 8, padding: "12px 16px", cursor: "pointer",
+                  background: selected ? C.tealLight : C.inputBg,
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  transition: "all 0.2s",
+                }}>
+                  <span style={{ color: C.charcoal, fontSize: 14, fontFamily: "'Montserrat', sans-serif", fontWeight: selected ? 600 : 400 }}>{name}</span>
+                  <span style={{ color: C.muted, fontSize: 12, fontFamily: "'Montserrat', sans-serif" }}>£{t.low}–£{t.high}/m²</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {mode === "exact" && (
+        <div style={{ marginBottom: 24 }}>
+          <Label>Exact price per m² (£)</Label>
+          <Input type="number" min="1" value={data.carpet_exact_price ?? ""}
+            onChange={v => setData(d => ({ ...d, carpet_exact_price: v }))} placeholder="e.g. 24.99" />
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Btn onClick={onBack} secondary>← Back</Btn>
+        <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepCarpetOptions({ data, setData, onNext, onBack }) {
+  const doorBarValid = data.carpet_doorbar_type === "Existing door bars (reuse)" || 
+    (data.carpet_doorbar_type && data.carpet_doorbar_qty !== "");
+  const valid = data.carpet_underlay && doorBarValid && data.carpet_stairs &&
+    (data.carpet_stairs === "no" || (data.carpet_stairs === "yes" && parseInt(data.carpet_stair_qty) > 0)) &&
+    data.carpet_uplift;
+  return (
+    <div>
+      <h2 style={sh}>A few more details</h2>
+      <p style={sp}>These help us give you an accurate estimate.</p>
+
+      <div style={{ marginBottom: 20 }}>
+        <Label>Underlay</Label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {Object.entries(carpetUnderlays).map(([name, rate]) => {
+            const selected = data.carpet_underlay === name;
+            return (
+              <div key={name} onClick={() => setData(d => ({ ...d, carpet_underlay: name }))} style={{
+                border: `1.5px solid ${selected ? C.teal : C.border}`,
+                borderRadius: 8, padding: "12px 16px", cursor: "pointer",
+                background: selected ? C.tealLight : C.inputBg,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                transition: "all 0.2s",
+              }}>
+                <span style={{ color: C.charcoal, fontSize: 13, fontFamily: "'Montserrat', sans-serif", fontWeight: selected ? 600 : 400 }}>{name}</span>
+                <span style={{ color: C.muted, fontSize: 12, fontFamily: "'Montserrat', sans-serif" }}>{rate === 0 ? "No cost" : `£${rate}/m²`}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <Label>Door bars</Label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+          {Object.entries(carpetDoorBars).map(([name, price]) => {
+            const selected = data.carpet_doorbar_type === name;
+            return (
+              <div key={name} onClick={() => setData(d => ({ ...d, carpet_doorbar_type: name }))} style={{
+                border: `1.5px solid ${selected ? C.teal : C.border}`,
+                borderRadius: 8, padding: "12px 16px", cursor: "pointer",
+                background: selected ? C.tealLight : C.inputBg,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                transition: "all 0.2s",
+              }}>
+                <span style={{ color: C.charcoal, fontSize: 13, fontFamily: "'Montserrat', sans-serif", fontWeight: selected ? 600 : 400 }}>{name}</span>
+                <span style={{ color: C.muted, fontSize: 12, fontFamily: "'Montserrat', sans-serif" }}>{price === 0 ? "No cost" : `£${price} each`}</span>
+              </div>
+            );
+          })}
+        </div>
+        {data.carpet_doorbar_type && data.carpet_doorbar_type !== "Existing door bars (reuse)" && (
+          <div>
+            <Label>How many door bars?</Label>
+            <Input type="number" min="0" value={data.carpet_doorbar_qty ?? ""}
+              onChange={v => setData(d => ({ ...d, carpet_doorbar_qty: v }))} placeholder="e.g. 3" />
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <Label>Are any areas on a staircase?</Label>
+        <div style={{ display: "flex", gap: 10 }}>
+          {[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }].map(o => (
+            <div key={o.value} style={{ flex: 1 }}>
+              <OptionCard label={o.label} selected={data.carpet_stairs === o.value}
+                onClick={() => setData(d => ({ ...d, carpet_stairs: o.value }))} />
+            </div>
+          ))}
+        </div>
+        {data.carpet_stairs === "yes" && (
+          <div style={{ marginTop: 12 }}>
+            <Label>How many staircases?</Label>
+            <Input type="number" min="1" value={data.carpet_stair_qty ?? ""}
+              onChange={v => setData(d => ({ ...d, carpet_stair_qty: v }))} placeholder="e.g. 1" />
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <Label>Uplift & disposal of existing flooring?</Label>
+        <div style={{ display: "flex", gap: 10 }}>
+          {[{ value: "yes", label: "Yes (£5/m²)" }, { value: "no", label: "No" }].map(o => (
+            <div key={o.value} style={{ flex: 1 }}>
+              <OptionCard label={o.label} selected={data.carpet_uplift === o.value}
+                onClick={() => setData(d => ({ ...d, carpet_uplift: o.value }))} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Btn onClick={onBack} secondary>← Back</Btn>
+        <Btn onClick={onNext} disabled={!valid}>Next →</Btn>
+      </div>
+    </div>
+  );
+}
+
 function StepContact({ data, setData, onNext, onBack }) {
   const isValidName     = data.name.trim().split(" ").filter(w => w.length > 0).length >= 2;
   const isValidEmail    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email);
@@ -680,30 +927,41 @@ const confBadge = {
 };
 
 function StepEstimate({ data, onRestart }) {
-  const result = calculateEstimate(data);
+  const isCarpet = data.material_type === "carpet";
+  const result = isCarpet ? calculateCarpetEstimate(data) : calculateEstimate(data);
   const badge = confBadge[result.confidence];
   const fmt = n => `£${n.toLocaleString()}`;
   const [emailSent, setEmailSent] = useState(false);
+
+  // Build product label and subfloor/details label depending on material
+  const productLabel = isCarpet
+    ? (data.carpet_price_mode === "exact"
+        ? `Carpet — £${data.carpet_exact_price}/m² (exact)`
+        : `Carpet — ${data.carpet_tier}`)
+    : `${data.product_brand} – ${data.product_range}`;
+
+  const detailLabel = isCarpet
+    ? `Underlay: ${data.carpet_underlay}`
+    : (scenarioLabels[result.scenario] ?? result.scenario);
 
   useEffect(() => {
     const sendEmail = async () => {
       try {
         const ejs = window.emailjs;
         if (!ejs) { console.error("EmailJS not loaded"); return; }
-        const subfloorLabel = scenarioLabels[result.scenario] ?? result.scenario;
         await ejs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
           name:          data.name,
-          message:       `New LVT estimate lead from ${data.name}`,
+          message:       `New ${isCarpet ? "carpet" : "LVT"} estimate lead from ${data.name}`,
           from_name:     data.name,
           from_email:    data.email,
           phone:         data.phone,
           postcode:      data.postcode,
-          product:       `${data.product_brand} – ${data.product_range}`,
+          product:       productLabel,
           area:          data.room_size_m2,
           rooms:         (data.rooms ?? []).join(", "),
           estimate_low:  fmt(result.total_low),
           estimate_high: fmt(result.total_high),
-          subfloor:      subfloorLabel,
+          subfloor:      detailLabel,
           marketing:     data.marketing ? "Yes — opted in" : "No — not opted in",
         }, EMAILJS_PUBLIC_KEY);
         setEmailSent(true);
@@ -714,6 +972,23 @@ function StepEstimate({ data, onRestart }) {
     };
     sendEmail();
   }, []);
+
+  // Build the "what's included" content
+  const carpetIncluded = [
+    "Materials supplied include:",
+    "",
+    `• Your chosen carpet${data.carpet_price_mode === "exact" ? "" : ` (${data.carpet_tier} range)`}.`,
+    `• ${data.carpet_underlay} underlay.`,
+    "• Gripper rods.",
+    `• ${data.carpet_doorbar_type} door bars${data.carpet_doorbar_qty ? ` (x${data.carpet_doorbar_qty})` : ""}.`,
+    data.carpet_stairs === "yes" ? `• Staircase installation (x${data.carpet_stair_qty}).` : null,
+    data.carpet_uplift === "yes" ? "• Uplift and disposal of existing flooring." : null,
+    "• Professional installation.",
+    "",
+    "All materials supplied in accordance with manufacturer recommendations.",
+  ].filter(l => l !== null);
+
+  const includedLines = isCarpet ? carpetIncluded : (scenarioDescriptions[result.scenario] ?? "").split("\n");
 
   return (
     <div>
@@ -734,7 +1009,7 @@ function StepEstimate({ data, onRestart }) {
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "18px 20px", marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           {[
-            { label: "Product",    value: `${data.product_brand} – ${data.product_range}` },
+            { label: "Product",    value: productLabel },
             { label: "Area",       value: `${data.room_size_m2} m²` },
             { label: "Rooms",      value: (data.rooms ?? []).join(", ") || "—" },
           ].map(row => (
@@ -747,7 +1022,7 @@ function StepEstimate({ data, onRestart }) {
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
           <div style={{ fontSize: 10, color: C.muted, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>What's included</div>
           <div style={{ fontSize: 13, color: C.text, fontFamily: "'Montserrat', sans-serif", fontWeight: 400, lineHeight: 1.8 }}>
-            {scenarioDescriptions[result.scenario].split("\n").map((line, i) => (
+            {includedLines.map((line, i) => (
               <div key={i} style={{ marginBottom: line === "" ? 6 : 0 }}>{line}</div>
             ))}
           </div>
@@ -795,26 +1070,36 @@ function StepEstimate({ data, onRestart }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 const defaultData = {
+  material_type: "",
   room_size_m2: "", product_brand: "", product_range: "",
   subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
   mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
   rooms: [],
+  carpet_price_mode: "tier", carpet_tier: "", carpet_exact_price: "",
+  carpet_underlay: "", carpet_doorbar_type: "", carpet_doorbar_qty: "",
+  carpet_stairs: "", carpet_stair_qty: "", carpet_uplift: "",
   name: "", email: "", phone: "", postcode: "", dataConsent: false, marketing: false,
 };
 
 export default function PrioryEstimator() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState(defaultData);
+  const isCarpet = data.material_type === "carpet";
+  const steps = isCarpet ? stepsCarpet : stepsLVT;
   const next    = () => setStep(s => s + 1);
   const back    = () => setStep(s => s - 1);
   const restart = () => {
     // Reset estimate fields but keep contact details
     setData(d => ({
       ...d,
+      material_type: "",
       room_size_m2: "", product_brand: "", product_range: "",
       subfloor_type: "", floor_level: "", is_new_build: false, property_age: "",
       mix_floor: 50, mix_subfloor: 50, mix_concrete_age: 50,
       rooms: [],
+      carpet_price_mode: "tier", carpet_tier: "", carpet_exact_price: "",
+      carpet_underlay: "", carpet_doorbar_type: "", carpet_doorbar_qty: "",
+      carpet_stairs: "", carpet_stair_qty: "", carpet_uplift: "",
     }));
     setStep(0);
   };
@@ -841,18 +1126,21 @@ export default function PrioryEstimator() {
             </div>
             <div style={{ width: 40, height: 2, background: C.teal, margin: "0 auto 14px", borderRadius: 2 }} />
             <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, color: C.teal, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-              Luxury Vinyl Tile Estimator
+              Carpet &amp; Flooring Estimator
             </div>
           </div>
 
           {/* Card */}
           <div style={{ background: C.card, borderRadius: 12, padding: "32px 28px", boxShadow: "0 4px 24px rgba(30,36,39,0.10)", border: `1px solid ${C.border}` }}>
-            <ProgressBar current={step} />
-            {step === 0 && <StepRoom     data={data} setData={setData} onNext={next} />}
-            {step === 1 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 2 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 3 && <StepContact  data={data} setData={setData} onNext={next} onBack={back} />}
-            {step === 4 && <StepEstimate data={data} onRestart={restart} />}
+            <ProgressBar current={step} steps={steps} />
+            {step === 0 && <StepMaterial data={data} setData={setData} onNext={next} />}
+            {step === 1 && <StepRoom     data={data} setData={setData} onNext={next} onBack={back} />}
+            {!isCarpet && step === 2 && <StepProduct  data={data} setData={setData} onNext={next} onBack={back} />}
+            {!isCarpet && step === 3 && <StepSubfloor data={data} setData={setData} onNext={next} onBack={back} />}
+            {isCarpet && step === 2 && <StepCarpet        data={data} setData={setData} onNext={next} onBack={back} />}
+            {isCarpet && step === 3 && <StepCarpetOptions data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 4 && <StepContact  data={data} setData={setData} onNext={next} onBack={back} />}
+            {step === 5 && <StepEstimate data={data} onRestart={restart} />}
           </div>
 
           {/* Footer */}
