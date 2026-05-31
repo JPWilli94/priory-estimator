@@ -127,7 +127,7 @@ function calculateCarpetEstimate(data) {
   const rawInstall    = CARPET_INSTALL_PER_M2 * area;
   const installCost   = Math.max(rawInstall, CARPET_INSTALL_MIN);
   const stairsCost    = CARPET_STAIRCASE_SURCHARGE * numStairs;
-  const upliftCost    = data.carpet_uplift === "yes" ? (CARPET_UPLIFT_PER_M2 * area) : 0;
+  const upliftCost    = 0;
 
   const fixedTotal = gripperCost + underlayCost + doorBarCost + installCost + stairsCost + upliftCost
     + (CARPET_MISC_PER_M2 * area) + CARPET_ADMIN_FEE;
@@ -761,7 +761,7 @@ function StepCarpetOptions({ data, setData, onNext, onBack }) {
   const doorBarValid = data.carpet_doorbar_type === "Existing door bars (reuse)" ||
     (data.carpet_doorbar_type && data.carpet_doorbar_qty !== "");
   const stairValid = !hasStaircase || (hasStaircase && parseInt(data.carpet_stair_qty) > 0);
-  const valid = data.carpet_underlay && doorBarValid && stairValid && data.carpet_uplift;
+  const valid = data.carpet_underlay && doorBarValid && stairValid;
   return (
     <div>
       <h2 style={sh}>A few more details</h2>
@@ -826,18 +826,6 @@ function StepCarpetOptions({ data, setData, onNext, onBack }) {
           </p>
         </div>
       )}
-
-      <div style={{ marginBottom: 24 }}>
-        <Label>Uplift & disposal of existing flooring?</Label>
-        <div style={{ display: "flex", gap: 10 }}>
-          {[{ value: "yes", label: "Yes (£5/m²)" }, { value: "no", label: "No" }].map(o => (
-            <div key={o.value} style={{ flex: 1 }}>
-              <OptionCard label={o.label} selected={data.carpet_uplift === o.value}
-                onClick={() => setData(d => ({ ...d, carpet_uplift: o.value }))} />
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <Btn onClick={onBack} secondary>← Back</Btn>
@@ -986,7 +974,6 @@ function StepEstimate({ data, onRestart }) {
     "• Gripper rods.",
     `• ${data.carpet_doorbar_type} door bars${data.carpet_doorbar_qty ? ` (x${data.carpet_doorbar_qty})` : ""}.`,
     data.carpet_stairs === "yes" ? `• Staircase installation (x${data.carpet_stair_qty}).` : null,
-    data.carpet_uplift === "yes" ? "• Uplift and disposal of existing flooring." : null,
     "• Professional installation.",
     "",
     "All materials supplied in accordance with manufacturer recommendations.",
