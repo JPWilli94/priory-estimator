@@ -87,11 +87,15 @@ const carpetDoorBars = {
   "Premium":  15,
 };
 
-const CARPET_GRIPPER_PER_ROOM   = 20;
-const CARPET_INSTALL_PER_M2     = 5;
-const CARPET_INSTALL_MIN        = 60;
-const CARPET_UPLIFT_PER_M2      = 5;
+const CARPET_GRIPPER_PER_ROOM    = 20;
+const CARPET_INSTALL_PER_M2      = 5;
+const CARPET_INSTALL_MIN         = 60;
+const CARPET_UPLIFT_PER_M2       = 5;
 const CARPET_STAIRCASE_SURCHARGE = 60;
+const CARPET_MISC_PER_M2         = 0.75;
+const CARPET_ADMIN_FEE           = 20;
+const CARPET_MATERIALS_DISCOUNT_THRESHOLD = 80;
+const CARPET_MATERIALS_DISCOUNT_RATE      = 0.10;
 
 function calculateCarpetEstimate(data) {
   const area = parseFloat(data.room_size_m2) || 0;
@@ -110,18 +114,22 @@ function calculateCarpetEstimate(data) {
   const underlayRate = carpetUnderlays[data.carpet_underlay] ?? 7;
   const doorBarRate  = carpetDoorBars[data.carpet_doorbar_type] ?? 10;
   const numDoorBars  = parseInt(data.carpet_doorbar_qty) || 0;
-  const numStairs    = data.carpet_stairs === "yes" ? (parseInt(data.carpet_stair_qty) || 0) : 0;
+  const numStairs = (data.rooms ?? []).includes("Staircase") ? (parseInt(data.carpet_stair_qty) || 0) : 0;
 
   // Fixed components (same for low and high)
-  const gripperCost   = CARPET_GRIPPER_PER_ROOM * numRooms;
-  const underlayCost  = underlayRate * area;
-  const doorBarCost   = doorBarRate * numDoorBars;
+  // Hidden 10% discount on materials only for jobs 80m² or over
+  const materialsDiscount = area >= CARPET_MATERIALS_DISCOUNT_THRESHOLD ? (1 - CARPET_MATERIALS_DISCOUNT_RATE) : 1;
+
+  const gripperCost   = CARPET_GRIPPER_PER_ROOM * numRooms * materialsDiscount;
+  const underlayCost  = underlayRate * area * materialsDiscount;
+  const doorBarCost   = doorBarRate * numDoorBars * materialsDiscount;
   const rawInstall    = CARPET_INSTALL_PER_M2 * area;
   const installCost   = Math.max(rawInstall, CARPET_INSTALL_MIN);
   const stairsCost    = CARPET_STAIRCASE_SURCHARGE * numStairs;
   const upliftCost    = data.carpet_uplift === "yes" ? (CARPET_UPLIFT_PER_M2 * area) : 0;
 
-  const fixedTotal = gripperCost + underlayCost + doorBarCost + installCost + stairsCost + upliftCost;
+  const fixedTotal = gripperCost + underlayCost + doorBarCost + installCost + stairsCost + upliftCost
+    + (CARPET_MISC_PER_M2 * area) + CARPET_ADMIN_FEE;
 
   let total_low  = Math.round((carpetLow  * area) + fixedTotal);
   let total_high = Math.round((carpetHigh * area) + fixedTotal);
@@ -249,19 +257,16 @@ const C = {
 const stepsLVT    = ["Material", "Area", "Product", "Subfloor", "Contact", "Estimate"];
 const stepsCarpet = ["Material", "Area", "Carpet", "Options", "Contact", "Estimate"];
 
-const roomOptions = [
-  "Kitchen",
-  "Living Room",
-  "Hallway",
-  "Landing",
-  "Bathroom",
-  "Bedroom",
-  "Dining Room",
-  "Utility Room",
-  "Conservatory",
-  "Study",
-  "Commercial / Office",
-  "Other",
+const roomOptionsLVT = [
+  "Kitchen", "Living Room", "Hallway", "Landing", "Bathroom",
+  "Bedroom", "Dining Room", "Utility Room", "Conservatory",
+  "Study", "Commercial / Office", "Other",
+];
+
+const roomOptionsCarpet = [
+  "Kitchen", "Living Room", "Hallway", "Landing", "Staircase",
+  "Bathroom", "Bedroom", "Dining Room", "Utility Room", "Conservatory",
+  "Study", "Commercial / Office", "Other",
 ];
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
@@ -447,6 +452,8 @@ function StepMaterial({ data, setData, onNext }) {
 }
 
 function StepRoom({ data, setData, onNext, onBack }) {
+  const isCarpet = data.material_type === "carpet";
+  const roomOptions = isCarpet ? roomOptionsCarpet : roomOptionsLVT;
   const area = parseFloat(data.room_size_m2);
   const validArea = area >= 1;
   const validRooms = (data.rooms ?? []).length > 0;
@@ -745,11 +752,11 @@ function StepCarpet({ data, setData, onNext, onBack }) {
 }
 
 function StepCarpetOptions({ data, setData, onNext, onBack }) {
-  const doorBarValid = data.carpet_doorbar_type === "Existing door bars (reuse)" || 
+  const hasStaircase = (data.rooms ?? []).includes("Staircase");
+  const doorBarValid = data.carpet_doorbar_type === "Existing door bars (reuse)" ||
     (data.carpet_doorbar_type && data.carpet_doorbar_qty !== "");
-  const valid = data.carpet_underlay && doorBarValid && data.carpet_stairs &&
-    (data.carpet_stairs === "no" || (data.carpet_stairs === "yes" && parseInt(data.carpet_stair_qty) > 0)) &&
-    data.carpet_uplift;
+  const stairValid = !hasStaircase || (hasStaircase && parseInt(data.carpet_stair_qty) > 0);
+  const valid = data.carpet_underlay && doorBarValid && stairValid && data.carpet_uplift;
   return (
     <div>
       <h2 style={sh}>A few more details</h2>
@@ -804,24 +811,16 @@ function StepCarpetOptions({ data, setData, onNext, onBack }) {
         )}
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <Label>Are any areas on a staircase?</Label>
-        <div style={{ display: "flex", gap: 10 }}>
-          {[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }].map(o => (
-            <div key={o.value} style={{ flex: 1 }}>
-              <OptionCard label={o.label} selected={data.carpet_stairs === o.value}
-                onClick={() => setData(d => ({ ...d, carpet_stairs: o.value }))} />
-            </div>
-          ))}
+      {hasStaircase && (
+        <div style={{ marginBottom: 20 }}>
+          <Label>How many staircases?</Label>
+          <Input type="number" min="1" value={data.carpet_stair_qty ?? ""}
+            onChange={v => setData(d => ({ ...d, carpet_stair_qty: v }))} placeholder="e.g. 1" />
+          <p style={{ fontSize: 11, color: C.muted, fontFamily: "'Montserrat', sans-serif", marginTop: 6 }}>
+            A £60 surcharge applies per staircase.
+          </p>
         </div>
-        {data.carpet_stairs === "yes" && (
-          <div style={{ marginTop: 12 }}>
-            <Label>How many staircases?</Label>
-            <Input type="number" min="1" value={data.carpet_stair_qty ?? ""}
-              onChange={v => setData(d => ({ ...d, carpet_stair_qty: v }))} placeholder="e.g. 1" />
-          </div>
-        )}
-      </div>
+      )}
 
       <div style={{ marginBottom: 24 }}>
         <Label>Uplift & disposal of existing flooring?</Label>
